@@ -2,7 +2,7 @@
   "name": "ts-interface-validator",
   "version": "0.1.0",
   "description": "TypeScript interface validator",
-  "main": "src/ValidatorManager.js",
+  "main": "index.js",
   "scripts": {
     "test": "mocha",
     "build": "rm -rf dist && tsc -d && cp package.json LICENSE README.md dist/ && find dist/test -name \"*.d.ts\" | xargs rm -rf"
@@ -23,5 +23,5 @@
     "@types/mocha": "^2.2.41",
     "@types/node": "^8.0.23"
   },
-  "typings": "src/ValidatorManager.d.ts"
+  "typings": "index.d.ts"
 }

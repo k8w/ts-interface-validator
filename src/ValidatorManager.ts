@@ -68,7 +68,7 @@ export default class ValidatorManager {
     }
 
     private regedValidators: { [index: string]: InterfaceValidator } = {};
-    getInterfaceValidator(filename: string, name: string, strictNullChecks: boolean = false): InterfaceValidator {
+    getInterfaceValidator(filename: string, name: string, strictNullChecks: boolean = true): InterfaceValidator {
         let regKey = filename + '@' + name;
         //先从缓存内查找
         if (this.regedValidators[regKey]) {

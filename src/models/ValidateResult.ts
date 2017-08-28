@@ -52,20 +52,20 @@ export default class ValidateResult{
     innerError: ValidateResult | undefined | null;
 
     private static ErrorMessages = {
-        [ValidateErrorCode.Succ]: '验证通过',
-        [ValidateErrorCode.NullOnRequired]: '该字段不能为空',
-        [ValidateErrorCode.LogicFalse]: '字段类型不满足条件',
-        [ValidateErrorCode.NotArray]: '该字段必须是数组',
-        [ValidateErrorCode.NotNumber]: '该字段必须是数字',
-        [ValidateErrorCode.NotString]: '该字段必须是字符串',
-        [ValidateErrorCode.NotBoolean]: '该字段必须是布尔值',
-        [ValidateErrorCode.NotObject]: '该字段必须是Object',
-        [ValidateErrorCode.NotNull]: '该字段必须是null',
-        [ValidateErrorCode.NotUndefined]: '该字段必须是undefined',
-        [ValidateErrorCode.InvalidStrLiteral]: '不合法的值',
-        [ValidateErrorCode.ArrayNotMatch]: '数组元素类型错误',
-        [ValidateErrorCode.InterfaceNotMatch]: '数据类型错误',
-        [ValidateErrorCode.FieldNotAllowed]: '不允许出现的字段'
+        [ValidateErrorCode.Succ]: 'Success',
+        [ValidateErrorCode.NullOnRequired]: 'Required field cannot be null',
+        [ValidateErrorCode.LogicFalse]: 'Logic conditions are not satisfied',
+        [ValidateErrorCode.NotArray]: 'Field must be Array',
+        [ValidateErrorCode.NotNumber]: 'Field must be number',
+        [ValidateErrorCode.NotString]: 'Field must be string',
+        [ValidateErrorCode.NotBoolean]: 'Field must be boolean',
+        [ValidateErrorCode.NotObject]: 'Field must be object',
+        [ValidateErrorCode.NotNull]: 'Field must be null',
+        [ValidateErrorCode.NotUndefined]: 'Field must be undefined',
+        [ValidateErrorCode.InvalidStrLiteral]: 'Invalid string literal value',
+        [ValidateErrorCode.ArrayNotMatch]: 'Array elements not match',
+        [ValidateErrorCode.InterfaceNotMatch]: 'Interface not match',
+        [ValidateErrorCode.FieldNotAllowed]: 'Disallowed field'
     };
 
     //重载检测 fieldName和innerError要传必须一起
