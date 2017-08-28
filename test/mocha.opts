@@ -1,0 +1,2 @@
+--compilers ts:ts-node/register,tsx:ts-node/register
+--require ./test/Base.ts

@@ -1,0 +1,27 @@
+{
+  "name": "ts-interface-validator",
+  "version": "0.1.0",
+  "description": "TypeScript interface validator",
+  "main": "src/ValidatorManager.js",
+  "scripts": {
+    "test": "mocha",
+    "build": "rm -rf dist && tsc -d && cp package.json LICENSE README.md dist/ && find dist/test -name \"*.d.ts\" | xargs rm -rf"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/k8w/ts-interface-validator.git"
+  },
+  "keywords": [
+    "k8w",
+    "typescript",
+    "interface",
+    "validator"
+  ],
+  "author": "k8w",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/mocha": "^2.2.41",
+    "@types/node": "^8.0.23"
+  },
+  "typings": "src/ValidatorManager.d.ts"
+}
