@@ -5,3 +5,5 @@ const TsInterfaceValidator: {
     getInterfaceValidator(filename: string, name: string): IValidator
 } = ValidatorManager.instance;
 export default TsInterfaceValidator;
+
+export { IValidator };

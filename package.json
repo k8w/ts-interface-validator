@@ -1,11 +1,11 @@
 {
   "name": "ts-interface-validator",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "TypeScript interface validator",
   "main": "index.js",
   "scripts": {
     "test": "mocha",
-    "build": "rm -rf dist && tsc -d && cp package.json LICENSE README.md dist/ && find dist/test -name \"*.d.ts\" | xargs rm -rf"
+    "build": "rm -rf dist && tsc -d && cp package.json LICENSE README.md dist/ && cp -rf test/res dist/test/ && find dist/test -name \"*.d.ts\" | xargs rm -rf"
   },
   "repository": {
     "type": "git",

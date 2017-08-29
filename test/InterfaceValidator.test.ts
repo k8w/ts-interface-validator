@@ -31,7 +31,7 @@ describe('InterfaceValidator', function(){
     });
 
     it('PtlDemo validate', function(){
-        let validator = ValidatorManager.instance.getInterfaceValidator(path.resolve(__dirname,'protocol/PtlDemo.ts'), 'ReqDemo');
+        let validator = ValidatorManager.instance.getInterfaceValidator(path.resolve(__dirname,'res/protocol/PtlDemo.ts'), 'ReqDemo');
         let result = validator.validate({
             paramA:'TestA',
             paramB:1234,
@@ -133,7 +133,7 @@ describe('InterfaceValidator', function(){
     })
 
     it('import', function(){
-        let validator = ValidatorManager.instance.getInterfaceValidator(path.resolve(__dirname,'protocol/PtlImport.ts'), 'ReqImport');
+        let validator = ValidatorManager.instance.getInterfaceValidator(path.resolve(__dirname,'res/protocol/PtlImport.ts'), 'ReqImport');
         let result = validator.validate({
             input:{
                 a:'test',
@@ -212,7 +212,7 @@ describe('InterfaceValidator', function(){
     })
 
     it('extends', function(){
-        let validator = ValidatorManager.instance.getInterfaceValidator(path.resolve(__dirname,'protocol/Child.ts'), 'Child');
+        let validator = ValidatorManager.instance.getInterfaceValidator(path.resolve(__dirname,'res/protocol/Child.ts'), 'Child');
         let result = validator.validate({
             parentValue: 123,
             childValue: 123

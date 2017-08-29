@@ -8,7 +8,7 @@ const path = require('path');
 
 describe('ValidatorManager', function(){
     it('getInterfaceValidator', function(){
-        let validator = ValidatorManager.instance.getInterfaceValidator(path.resolve(__dirname,'protocol/PtlDemo.ts'), 'ReqDemo');
+        let validator = ValidatorManager.instance.getInterfaceValidator(path.resolve(__dirname,'res/protocol/PtlDemo.ts'), 'ReqDemo');
 
         assert(validator, 'Validator返回为空');
         assert.equal(validator.fieldValidators.length, 7, 'FieldValidator长度错误');
