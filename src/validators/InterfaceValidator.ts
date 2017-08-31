@@ -4,6 +4,8 @@ import ValidateError from "../models/ValidateResult";
 import { ValidateErrorCode } from "../models/ValidateResult";
 import ValidatorUtil from "./ValidatorUtil";
 import ValidateResult from "../models/ValidateResult";
+import LogicValidator from './LogicValidator';
+import BasicValidator from './BasicValidator';
 
 export default class InterfaceValidator implements IValidator {
     readonly fieldValidators: FieldValidator[];
@@ -14,9 +16,9 @@ export default class InterfaceValidator implements IValidator {
     private readonly name?: string;
     readonly fileName?: string;
     readonly manager: ValidatorManager;
-    private readonly extendsName?: string;    
+    private readonly extendsName?: string;
     private readonly extendsInterfaceValidator?: InterfaceValidator;
-    indexValidator?: IValidator;    
+    indexValidator?: IValidator;
 
     constructor(interfaceDef: string, manager: ValidatorManager, fileName?: string) {
         //Remove comments
@@ -93,7 +95,7 @@ export default class InterfaceValidator implements IValidator {
         }
 
         //去除空的validator（比如index）
-        this.fieldValidators = this.fieldValidators.filter((v: FieldValidator)=>v.validator != undefined)
+        this.fieldValidators = this.fieldValidators.filter((v: FieldValidator) => v.validator != undefined)
 
         //生成fieldNames Map
         this.fieldNames = this.fieldValidators.reduce((prev: any, next: any) => {
@@ -109,6 +111,8 @@ export default class InterfaceValidator implements IValidator {
     }
 
     private addFieldValidator(allDef: string) {
+        allDef = allDef.trim();
+
         //index signature
         if (allDef.startsWith('[')) {
             let matches = allDef.match(/^\[.*\]\s*:([\s\S]+)/);
@@ -120,7 +124,16 @@ export default class InterfaceValidator implements IValidator {
         }
         //normal field
         else {
-            this.fieldValidators.push(new FieldValidator(this, allDef));
+            let matches = allDef.match(/^([a-zA-Z_\$]\w*)\s*(\??)\s*:\s*([\s\S]+)/);
+            if (matches == null) {
+                console.log(JSON.stringify(allDef))
+                throw new Error('不可识别的类型定义: ' + allDef + ' At ' + this.fileName);
+            }
+            let fieldName = matches[1];
+            let isRequired = matches[2] == '';
+            let typeDef = matches[3];
+
+            this.fieldValidators.push(new FieldValidator(this, fieldName, typeDef, isRequired));
         }
     }
 
@@ -155,7 +168,7 @@ export default class InterfaceValidator implements IValidator {
 
         //有多余的字段
         for (let key in value) {
-            if (value.hasOwnProperty(key) && !this.fieldNames.hasOwnProperty(key)) {                
+            if (value.hasOwnProperty(key) && !this.fieldNames.hasOwnProperty(key)) {
                 if (this.indexValidator) {
                     //有index signature，使用indexValidator
                     let result = this.indexValidator.validate(value[key]);
@@ -183,20 +196,22 @@ export class FieldValidator implements IValidator {
     /**
      * @param typeDef 形如 fieldName? : SometypeDef;
      */
-    constructor(parent: InterfaceValidator, allDef: string) {
+    constructor(parent: InterfaceValidator, fieldName: string, typeDef: string, isRequired: boolean) {
         this.parent = parent;
-
-        allDef = allDef.trim();
-
-        let matches = allDef.match(/^([a-zA-Z_\$]\w*)\s*(\??)\s*:\s*([\s\S]+)/);
-        if (matches == null) {
-            throw new Error('不可识别的类型定义: ' + allDef + ' At ' + parent.fileName);
-        }
-        this.fieldName = matches[1];
-        this.isRequired = matches[2] == '';
-        let typeDef = matches[3];
-
+        this.fieldName = fieldName;
         this.validator = parent.manager.getValidator(typeDef, parent.fileName);
+        if (
+            typeDef == 'undefined'  //自己是undefined
+            || (
+                this.validator instanceof LogicValidator && this.validator.condition == 'OR'
+                && this.validator.childValidators.some(v => v instanceof BasicValidator && v.typeDef == 'undefined')
+            )   //或undefined
+        ) {
+            this.isRequired = false;
+        }
+        else {
+            this.isRequired = isRequired;
+        }
     }
 
     validate(value: any): ValidateError {

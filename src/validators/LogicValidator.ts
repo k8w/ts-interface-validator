@@ -67,12 +67,12 @@ export default class LogicValidator implements IValidator {
             return new ValidateResult(ValidateErrorCode.NotString);
         }
 
-        for (let key in this.childValidators) {
-            let result = this.childValidators[key].validate(value);
+        for (let i = 0; i < this.childValidators.length; ++i) {
+            let result = this.childValidators[i].validate(value);
 
             //AND 一错即错
             if (this.condition == 'AND' && result.isError) {
-                return new ValidateResult(ValidateErrorCode.LogicFalse, `<Condition${key}>`, result);
+                return new ValidateResult(ValidateErrorCode.LogicFalse, `<Condition${i}>`, result);
             }
 
             //OR 一对即对

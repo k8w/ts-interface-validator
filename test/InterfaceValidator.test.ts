@@ -134,20 +134,28 @@ describe('InterfaceValidator', function () {
         assert.equal(result.originalError.fieldName, 'paramF.1.1');
     })
 
-    it('import', function () {
+    it('single line import', function () {
         let validator = manager.getValidator('ReqImport', path.resolve(__dirname, 'res/protocol/PtlImport.ts'));
         let result = validator.validate({
             input: {
                 a: 'test',
                 b: 123
+            },
+            input2: {
+                a2: 'xxx',
+                b2: 999
             }
         });
-        assert.equal(result.errcode, 0, result.originalError.fieldName + result.originalError.message);
+        assert.equal(result.errcode, 0, result.originalError.fieldName + ': ' + result.originalError.message);
 
         result = validator.validate({
             input: {
                 a: 123,
                 b: 123
+            },
+            input2: {
+                a2: 'xxx',
+                b2: 999
             }
         });
         assert.equal(result.errcode, ValidateErrorCode.InterfaceNotMatch);
@@ -155,7 +163,66 @@ describe('InterfaceValidator', function () {
         result = validator.validate({
             input: {
                 a: 'test',
-                b: 'test'
+                b: 123
+            },
+            input2: {
+                a2: 'xxx',
+                b2: '999'
+            }
+        });
+        assert.equal(result.errcode, ValidateErrorCode.InterfaceNotMatch);
+
+        result = validator.validate({
+            input: {
+                a: 'test',
+                b: 123
+            }
+        });
+        assert.equal(result.errcode, ValidateErrorCode.InterfaceNotMatch);
+    })
+
+    it('multi line import', function () {
+        let validator = manager.getValidator('ReqImport', path.resolve(__dirname, 'res/protocol/PtlImport2.ts'));
+        let result = validator.validate({
+            input: {
+                a: 'test',
+                b: 123
+            },
+            input2: {
+                a2: 'xxx',
+                b2: 999
+            }
+        });
+        assert.equal(result.errcode, 0, result.originalError.fieldName + ': ' + result.originalError.message);
+
+        result = validator.validate({
+            input: {
+                a: 123,
+                b: 123
+            },
+            input2: {
+                a2: 'xxx',
+                b2: 999
+            }
+        });
+        assert.equal(result.errcode, ValidateErrorCode.InterfaceNotMatch);
+
+        result = validator.validate({
+            input: {
+                a: 'test',
+                b: 123
+            },
+            input2: {
+                a2: 'xxx',
+                b2: '999'
+            }
+        });
+        assert.equal(result.errcode, ValidateErrorCode.InterfaceNotMatch);
+
+        result = validator.validate({
+            input: {
+                a: 'test',
+                b: 123
             }
         });
         assert.equal(result.errcode, ValidateErrorCode.InterfaceNotMatch);

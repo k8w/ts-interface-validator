@@ -3,13 +3,14 @@ import InterfaceValidator from "../src/validators/InterfaceValidator";
 import LogicValidator from "../src/validators/LogicValidator";
 import ArrayValidator from "../src/validators/ArrayValidator";
 import BasicValidator from "../src/validators/BasicValidator";
-const assert = require('assert');
-const path = require('path');
+import * as assert from 'assert';
+import * as path from 'path';
+import { ValidateErrorCode } from '../src/models/ValidateResult';
 
 describe('ValidatorManager', function () {
     let manager = new ValidatorManager();
 
-    it('getInterfaceValidator', function () {
+    it('get interface validator', function () {
         let validator = manager.getValidator('ReqDemo', path.resolve(__dirname, 'res/protocol/PtlDemo.ts'));
 
         assert(validator, 'Validator返回为空');
@@ -28,7 +29,36 @@ describe('ValidatorManager', function () {
         assert((validator as any).fieldValidators[4].validator instanceof ArrayValidator)
     });
 
-    describe('getFieldValidator', function () {
+    it('get type validator', function () {
+        let validator = manager.getValidator('Req', path.resolve(__dirname, 'res/protocol/Alternative.ts'));
+
+        let result = validator.validate({
+            symbolId: 'xxx',
+            value: 'yes'
+        })
+        console.log(result)
+        assert.equal(result.errcode, 0, `${result.originalError.fieldName}: ${result.originalError.message}`)
+
+        result = validator.validate({
+            symbolCode: 'xxx',
+            value: 'no'
+        })
+        assert.equal(result.errcode, 0, `${result.originalError.fieldName}: ${result.originalError.message}`)
+
+        result = validator.validate({
+            symbolId: 'xxx',
+            symbolCode: 'xxx',
+            value: 'yes'
+        })
+        assert.equal(result.errcode, ValidateErrorCode.LogicFalse, `${result.originalError.fieldName}: ${result.originalError.message}`)
+        
+        result = validator.validate({
+            value: 'yes'
+        })
+        assert.equal(result.errcode, ValidateErrorCode.LogicFalse, `${result.originalError.fieldName}: ${result.originalError.message}`)
+    })
+
+    describe('get validator by typeDef', function () {
         it('Logic', function () {
             //Logic
             let validator = manager.getValidator(' string | number');

@@ -1,7 +1,13 @@
-import Response from "./Response";
-import Request from "./Request";
-import Protocol from "./Protocol";
-import { ImportInput, ImportInput2 } from './subfolder/ImportInput';
+import Response from "./Response"
+import Request from "./Request"
+import Protocol from "./Protocol"
+import {
+    ImportInput,
+    ImportInput2
+}
+    from
+    './subfolder/ImportInput'
+    
 /**
  * Demo: HTTP JSON API请求协议
  * 协议名就是文件名 统一Ptl开头

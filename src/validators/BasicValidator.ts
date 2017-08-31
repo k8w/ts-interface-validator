@@ -2,8 +2,9 @@ import IValidator from "./IValidator";
 import ValidateResult from "../models/ValidateResult";
 import {ValidateErrorCode} from "../models/ValidateResult";
 export default class BasicValidator implements IValidator {
-
-    constructor(typeDef : string) {
+    readonly typeDef: string;
+    constructor(typeDef: string) {
+        this.typeDef = typeDef;
         if (/^(number|string|boolean|[Oo]bject|undefined)$/.test(typeDef)) {
             this.validate = this
                 .validateType
