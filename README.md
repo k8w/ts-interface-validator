@@ -41,18 +41,20 @@ if(result.isError){
 
 ### Supported
 
-1. Support basic type as  `string`, `number`, `boolean`, `Object`, `any`
-1. Support `Array`
-1. Support nested referenced interface
-1. Support logical expression, such as `string | number`
-1. Support string literal，as `'Value1' | 'Value2'`
-1. Support relative import
-1. Support extend
-1. Support index signature, as `{ [key: string]: number }`
-1. Support `Partial<T>`
+1. Basic type as  `string`, `number`, `boolean`, `Object`, `any`
+1. Array type as `T[]` or `Array<T>`
+1. Type alias as `type Abc = string`
+1. Nested referenced interface, as `type Bcd = Abc`
+1. Logical expression, such as `string | number`
+1. String literal，as `'Value1' | 'Value2'`
+1. Relative import
+1. Extend, as `interface Def extends Abc { ... }`
+1. Index signature, as `{ [key: string]: number }`
+1. Partial type, as `Partial<T>`
+1. Ignore comments automatically
 
 ### Not Supported (temporarily)
 
 1. import must be finished in single line, and must be ended with semicolon
-1. Directly defined type, as `type Abc = string`
 1. Mapped Types
+1. Circular reference

@@ -18,7 +18,7 @@ describe('ValidatorUtil', function(){
         }`;
 
         let result = ValidatorUtil.removeComment(src);
-        assert.equal(result, '{\ntest?:string;\ntest2:number;\ntest3:number|string;\n}');
+        assert.equal(result, '{\ntest?: string;\ntest2: number;\ntest3: number | string;\n}');
     });
 
     it('trimBrackets', function () {

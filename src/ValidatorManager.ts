@@ -1,54 +1,68 @@
-import IValidator from "./validators/IValidator";
-import InterfaceValidator from "./validators/InterfaceValidator";
+import IValidator from './validators/IValidator';
+import InterfaceValidator from './validators/InterfaceValidator';
 import LogicValidator from "./validators/LogicValidator";
 import ArrayValidator from "./validators/ArrayValidator";
 import BasicValidator from "./validators/BasicValidator";
-import ValidatorUtil from "./validators/ValidatorUtil";
+import ValidatorUtil from './validators/ValidatorUtil';
 import Util from "./models/Util";
-
-const fs = require('fs');
-const path = require('path');
-const assert = require('assert');
+import * as fs from 'fs';
+import * as path from 'path';
+import * as assert from 'assert';
 
 export default class ValidatorManager {
+    readonly strictNullChecks: boolean;  //default is true
+    private _referencedValidatorCache: { [key: string]: IValidator } = {};
 
-    private static _instance: ValidatorManager;
-    static get instance(): ValidatorManager {
-        if (!this._instance) {
-            this._instance = new ValidatorManager();
-        }
-        return this._instance;
+    constructor(strictNullChecks: boolean = true) {
+        this.strictNullChecks = strictNullChecks;
     }
 
     /**
-     * 根据类型定义选择相应的Validator
-     * 一共有四种类型，判断顺序为 LogicValidator > ArrayValidator > BasicValidator > InterfaceValidator
-     * @param typedef 类型定义，不包含字段名。例如对于 `field: string`, `typedef` 为 `string`。
-     * @param parent
-     * @returns {TestValidator}
+     * Get a validator
+     * Support both from file or individual type definition
+     * @param type Type definition or type/interface name
+     * @param fileName Which file the type is defined in, needed referenced any other type
      */
-    getTypeValidator(typedef: string, parent: InterfaceValidator): IValidator {
-        typedef = ValidatorUtil.trimBrackets(typedef.trim());
+    getValidator(type: string, fileName?: string): IValidator {
+        //Remove bracket at the beginning and end
+        while (type.startsWith('(') && type.endsWith(')')) {
+            type = type.substr(1, type.length - 2)
+        }
+
+        //Cached referenced validator
+        if (fileName && this._referencedValidatorCache[type + fileName]) {
+            return this._referencedValidatorCache[type + fileName];
+        }
+
+        //remove comments
+        type = ValidatorUtil.removeComment(type.trim());
+
+        if (!type) {
+            throw new Error('No available type: ' + type);
+        }
 
         // 1. LogicValidator
-        if (this.isLogicType(typedef)) {
-            return new LogicValidator(typedef, parent)
+        if (this.isLogicType(type)) {
+            return new LogicValidator(type, this, fileName)
         }
 
         // 2. ArrayValidator
-        if (this.isArrayType(typedef)) {
-            return new ArrayValidator(typedef, parent);
+        if (this.isArrayType(type)) {
+            return new ArrayValidator(type, this, fileName);
         }
 
         // 3. BasicValidator
-        if (this.isBasicType(typedef)) {
-            return new BasicValidator(typedef);
+        if (this.isBasicType(type)) {
+            return new BasicValidator(type);
         }
 
         // 4. PartialValidator
-        if (this.isPartialType(typedef)) {
-            let interfaceName = typedef.match(/^Partial\<(\w+)\>$/)![1];
-            let validator = this.getInterfaceValidator(this.getReferencedTypePath(interfaceName, parent), interfaceName);
+        if (this.isPartialType(type)) {
+            let partialBody = type.match(/^Partial\<(\w+)\>$/)![1];
+            let validator = this.getValidator(partialBody, fileName);
+            if (!(validator instanceof InterfaceValidator)) {
+                throw new Error(`Partial type is only support interface: ${partialBody}`)
+            }
             validator.fieldValidators.forEach(v => {
                 v.isRequired = false;
             })
@@ -56,155 +70,285 @@ export default class ValidatorManager {
         }
 
         // 5. InterfaceValidator
-        if (/^\{[\s\S]*\}$/.test(typedef)) {
-            return new InterfaceValidator(typedef, {
-                filename: parent.filename,
-                strictNullChecks: parent.strictNullChecks
-            });
-        }
-        else {
-            return this.getInterfaceValidator(this.getReferencedTypePath(typedef, parent), typedef);
-        }
-    }
-
-    private regedValidators: { [index: string]: InterfaceValidator } = {};
-    getInterfaceValidator(filename: string, name: string, strictNullChecks: boolean = true): InterfaceValidator {
-        let regKey = filename + '@' + name;
-        //先从缓存内查找
-        if (this.regedValidators[regKey]) {
-            return this.regedValidators[regKey];
+        if (this.isInterfaceType(type)) {
+            return new InterfaceValidator(type, this, fileName);
         }
 
-        //缓存中找不到 去文件里找
-        if (!fs.existsSync(filename)) {
-            throw new Error('没有这个文件: ' + filename);
+        // 6. Referenced type (type is name of type/interface)
+        if (!fileName) {
+            throw new Error(`Type "${type}" is a referenced type, but no fileName is assigned.`);
         }
-        let fileContent = fs.readFileSync(filename).toString();
-
-        let startReg = new RegExp(`\\binterface\\s+${Util.escapeForRegExp(name)}(\\s+extends\\s+\\w+)?.*\\{`);
-        let match = fileContent.match(startReg);
-        if (match == null) {
-            throw new Error(`找不到${name}的类型定义在${filename}`);
-        }
-
-        //检查是否存在继承
-        let extendsTypeName: string | undefined;
-        if (match[1]) {
-            //继承的类型
-            extendsTypeName = match[1].trim().substr(7).trim();
-        }
-
-        let curPos = match.index;
-        let bracketsLevel = 0; //目前进入的花括号层级，0代表目前不在花括号内
-
-        //import def
-        let matches = fileContent.match(/import .*;/g);
-        let importDef = matches ? matches.join('\n') : '';
-
-        //结果
-        let startPos = -1, endPos = -1;
-
-        //词法分析
-        while (!(startPos > -1 && bracketsLevel == 0)) {  //只要还没结束
-            if (fileContent[curPos] == '{') {
-                ++bracketsLevel;
-                if (startPos == -1) {
-                    //入口点
-                    startPos = curPos;
-                }
-            }
-            else if (fileContent[curPos] == '}') {
-                if (startPos == -1 || bracketsLevel < 1) {
-                    throw new Error('类型定义错误，括号不匹配');
-                }
-
-                if (--bracketsLevel == 0) {
-                    //结束
-                    endPos = curPos;
-                    break;
-                }
-            }
-
-            //到头了
-            if (++curPos == fileContent.length) {
-                break;
-            }
-        }
-
-        if (startPos == -1 || endPos == -1) {
-            throw new Error(`在${filename}中解析${name}失败`);
-        }
-
-        let typedef = fileContent.substr(startPos, endPos - startPos + 1);
-        let validator = new InterfaceValidator(typedef, {
-            name: name,
-            filename: filename,
-            importDef: importDef,
-            strictNullChecks: strictNullChecks,
-            extendsTypeName: extendsTypeName
-        });
-
-        if (!validator) {
-            throw new Error('Validator创建失败')
-        }
-
-        this.regedValidators[regKey] = validator;
+        let validator = this.getReferencedTypeValidator(type, fileName);
+        //Cache referenced type (at the top)
+        this._referencedValidatorCache[type + fileName] = validator;
         return validator;
     }
 
     /**
-     * 获取在一个文件中引用的Type的路径
-     * @param typeName 被引用的Type名
-     * @param parent 引用该Type的Interface的Validator
+     * Get validator from referenced type.
+     * Referenced type means type not defined directly, but refered to name of other type (in the same file or not)
+     * @param typeName Name of referenced type
+     * @param fileName Which file this type is referenced at
+     * @param fileContent Pass this to save cost of reading file
      */
-    getReferencedTypePath(typeName: string, parent: InterfaceValidator): string {
-        let matches = parent.importDef.match(new RegExp(`import.*\\b${typeName}\\b.*\\bfrom\\b.*['"]([\\w\\.\\_\\/\\\\]+)['"]`));
+    private getReferencedTypeValidator(typeName: string, fileName: string, fileContent?: string): IValidator {
+        let realFileName = this.getReferencedTypePath(typeName, fileName, fileContent);
+
+        //是import的（定义不在本文件），fileContent也得重新取
+        if (realFileName !== fileName || !fileContent) {
+            fileContent = this.getCleanFileContent(realFileName);
+        }
+
+        // Is type
+        let typeDef = this.getTypeDefFromFileContent(typeName, fileContent);
+        if (typeDef) {
+            return this.getValidator(typeDef, realFileName);
+        }
+
+        // Is interface
+        let interfaceDef = this.getInterfaceDefFromFileContent(typeName, fileContent);
+        if (interfaceDef) {
+            return this.getValidator(interfaceDef, realFileName);
+        }
+
+        throw new Error(`Cannot find interface or type definition of "${typeName}" at ${realFileName}`);
+    }
+
+    /**
+     * Get path of a type referenced in a file
+     * Return fileName must be exists (validated)
+     * @param fileName Full pathname of file to resolve
+     * @param typeName Name of referenced type
+     * @param fileContent Pass this to save cost of reading file
+     */
+    private getReferencedTypePath(typeName: string, fileName: string, fileContent?: string): string {
+        let importDefs = this.getImportDefs(fileName, fileContent);
+        let matches;
+        for (let def of importDefs) {
+            // Get the first match
+            if (matches = def.match(new RegExp(`\\b${typeName}\\b[\\s\\S]+\\bfrom\\s+['"](.+?)['"]$`))) {
+                break;
+            }
+        }
+
         if (matches) {
-            let filename = path.resolve(
-                path.dirname(parent.filename),
+            // Convert to absolute path
+            fileName = path.resolve(
+                path.dirname(fileName),
                 matches[1]
             );
 
-            if (fs.existsSync(filename)) {
-                //nop
+            if (fs.existsSync(fileName)) {
+                // Do nothing
             }
-            else if (fs.existsSync(filename + '.ts')) {
-                filename += '.ts';
+            else if (fs.existsSync(fileName + '.ts')) {
+                fileName += '.ts';
             }
-            else if (fs.existsSync(filename + '.tsx')) {
-                filename += '.tsx';
+            else if (fs.existsSync(fileName + '.tsx')) {
+                fileName += '.tsx';
             }
-            else if (fs.existsSync(filename + '.d.ts')) {
-                filename += '.d.ts';
+            else if (fs.existsSync(fileName + '.d.ts')) {
+                fileName += '.d.ts';
             }
             else {
-                throw new Error('文件不存在：' + filename);
+                throw new Error('Import from non-existing file: ' + fileName);
             }
 
-            //是import的
-            return filename;
+            // Is from import
+            return fileName;
         }
         else {
-            //不是import的 在当前文件查找
-            return parent.filename;
+            // Not from import, but from itself
+            return fileName;
         }
     }
 
-    private isLogicType(typedef: string): boolean {
-        let bracketsLevel = 0, braceLevel = 0, angleBracketsLevel = 0;
+    private getTypeDefFromFileContent(typeName: string, fileContent: string): string | null {
+        let typeReg = new RegExp(`\\btype\\s+${Util.escapeForRegExp(typeName)}\\s+=`);
+        let match = fileContent.match(typeReg);
+        if (match) {
+            // 从定义开始往下找
+            let startPos = match.index! + match[0].length;
+            let lastOutEndPos: number = NaN;
+            //当前的状态：在外部，在外部（等待下一个逻辑），在内部（字符串），在内部（花括号），在内部（括号）
+            let curType: 'out' | 'logicWait' | 'inString' | 'inBrace' | 'inBracket' = 'out';
+            let braceOrBracketLevel = 0; //括号层级
+            let isWaitingLogic = false;
+
+            let out = (pos: number) => {
+                isWaitingLogic = false;
+                lastOutEndPos = pos;
+                curType = 'out';
+            }
+
+            //只要没break 就查找到文件尾
+            for (let curPos = startPos; curPos < fileContent.length; ++curPos) {
+                let char = fileContent[curPos];
+
+                /**
+                 *  |-在外部
+                        |- 空白跳过
+                        |- 尚未out过 || isWaitingLogic
+                            |- 等待开始：等待字符串、引号、花括号、括号
+                            |- 其余异常
+                        |- else = 已经out过 && !isWaitingLogic
+                            |- 等待 & |
+                                |- 设置isWaitingLogic=true
+                            |- 其余RETURN
+                    |- 在字符串内部
+                        |- 空白 分号 & | OUT(curPos-1)
+                    |- 在花括号、括号内部
+                        |- 遇到相应括号，递减level，若level为0则OUT
+                 */
+
+                // 在外部
+                if (curType == 'out') {
+                    // 空白跳过
+                    if (/\s/.test(char)) {
+                        //continue
+                    }
+                    // 尚未out过 || isWaitingLogic
+                    else if (isNaN(lastOutEndPos) || isWaitingLogic) {
+                        // 等待开始：等待字符串、引号、花括号、括号
+                        if (/\w|\'|\"/.test(char)) {
+                            curType = 'inString';
+                        }
+                        else if (char == '{') {
+                            curType = 'inBrace';
+                            braceOrBracketLevel = 1;
+                        }
+                        else if (char == '(') {
+                            curType = 'inBracket';
+                            braceOrBracketLevel = 1;
+                        }
+                        // 其余异常
+                        else {
+                            throw new Error(`Unexpected charactor "${char}" at the type beginning (index=${curPos})`);
+                        }
+                    }
+                    // else = 已经out过 && !isWaitingLogic
+                    else {
+                        // 等待 & |
+                        if (/\&|\|/.test(char)) {
+                            isWaitingLogic = true;
+                        }
+                        // 其余RETURN
+                        else {
+                            return fileContent.substr(startPos, lastOutEndPos - startPos + 1).trim();
+                        }
+                    }
+                }
+                // 在字符串内部
+                else if (curType == 'inString') {
+                    // 空白 分号 & | OUT
+                    if (/\s|;|\&|\|/.test(char)) {
+                        out(curPos - 1);
+                        if (char == '&' || char == '|') {
+                            isWaitingLogic = true;
+                        }
+                    }
+                }
+                // 在花括号内部    
+                else if (curType == 'inBrace') {
+                    // 遇到}，递减level，若level为0则OUT
+                    if (char == '}') {
+                        --braceOrBracketLevel;
+                        if (braceOrBracketLevel == 0) {
+                            out(curPos)
+                        }
+                    }
+                }
+                else if (curType == 'inBracket') {
+                    // 遇到), level-- 
+                    if (char == ')') {
+                        --braceOrBracketLevel;
+                        // 若level == 0, out
+                        if (braceOrBracketLevel == 0) {
+                            out(curPos)
+                        }
+                    }
+                }
+            }
+
+            //可能直到文件尾也没有结束符
+            if (!isNaN(lastOutEndPos) && curType == 'out') {
+                return fileContent.substr(startPos, lastOutEndPos - startPos + 1).trim();
+            }
+            else {
+                throw new Error(`Invalid type definition: ${typeName}`);
+            }
+        }
+        else {
+            // Type not found
+            // throw new Error(`Type not found: ${typeName}`);
+            return null;
+        }
+    }
+
+    private getInterfaceDefFromFileContent(typeName: string, fileContent: string): string | null {
+        let interfaceReg = new RegExp(`\\binterface\\s+${Util.escapeForRegExp(typeName)}(\\s+extends\\s+\\w+)?.*\\{`);
+        let match = fileContent.match(interfaceReg);
+
+        if (match) {
+            let startPos = match.index! + match[0].length;
+            let braceLevel = 1;
+            for (let curPos = startPos; curPos < fileContent.length; ++curPos) {
+                let char = fileContent[curPos];
+                if (char == '{') {
+                    ++braceLevel;
+                }
+                else if (char == '}') {
+                    if (--braceLevel == 0) {
+                        return fileContent.substr(match.index!, curPos - match.index! + 1);
+                    }
+                }
+            }
+            throw new Error('Brace not match in interface definition');
+        }
+        else {
+            //not interface
+            return null;
+        }
+    }
+
+    /**
+     * Get import definition of a file.
+     * Every import would be a element of returned array.
+     * @param fileName Full pathname
+     * @param fileContent Pass this to save the cost of reading file.
+     */
+    private getImportDefs(fileName: string, fileContent?: string): string[] {
+        if (!fileContent) {
+            fileContent = this.getCleanFileContent(fileName);
+        }
+        let matches = fileContent.match(/import\b[\s\S]+?\bfrom\s+[\'\"].+[\'\"]/g);
+        return matches ? matches.map(v => v.replace(/\s+/g, ' ')) : [];
+    }
+
+    /**
+     * Return file content without comment
+     * @param fileName 
+     */
+    private getCleanFileContent(fileName: string) {
+        let fileContent = fs.readFileSync(fileName).toString();
+        return ValidatorUtil.removeComment(fileContent);
+    }
+
+    private isLogicType(typeDef: string): boolean {
+        let bracketLevel = 0, braceLevel = 0, anglebracketLevel = 0;
         let isLogicType = false;
-        for (let pos = 0; pos < typedef.length && !isLogicType; ++pos) {
-            switch (typedef[pos]) {
+        for (let pos = 0; pos < typeDef.length && !isLogicType; ++pos) {
+            switch (typeDef[pos]) {
                 case '|':
                 case '&':
                     //证明有逻辑运算符 则归类为LogicValidator
-                    bracketsLevel == 0 && braceLevel == 0 && angleBracketsLevel == 0 && (isLogicType = true);
+                    bracketLevel == 0 && braceLevel == 0 && anglebracketLevel == 0 && (isLogicType = true);
                     break;
                 case '(':
-                    ++bracketsLevel;
+                    ++bracketLevel;
                     break;
                 case ')':
-                    --bracketsLevel;
+                    --bracketLevel;
                     break;
                 case '{':
                     ++braceLevel;
@@ -213,33 +357,37 @@ export default class ValidatorManager {
                     --braceLevel;
                     break;
                 case '<':
-                    ++angleBracketsLevel;
+                    ++anglebracketLevel;
                     break;
                 case '>':
-                    --angleBracketsLevel;
+                    --anglebracketLevel;
                     break;
             }
         }
 
         if (!isLogicType) {
-            assert.equal(bracketsLevel, 0);
+            assert.equal(bracketLevel, 0);
             assert.equal(braceLevel, 0);
         }
 
         return isLogicType;
     }
 
-    private isArrayType(typedef: string): boolean {
-        return /^([\s\S]*)\[\]$/.test(typedef) || /^Array\<([\s\S]*)\>$/.test(typedef);
+    private isArrayType(typeDef: string): boolean {
+        return /^([\s\S]*)\[\]$/.test(typeDef) || /^Array\<([\s\S]*)\>$/.test(typeDef);
     }
 
-    private isBasicType(typedef: string): boolean {
-        return /^(number|string|boolean|[Oo]bject|any|null|undefined)$/.test(typedef)     //基础类型
-            || /^'.*'$/.test(typedef)     //静态字符串
-            || /^".*"$/.test(typedef);     //静态字符串
+    private isBasicType(typeDef: string): boolean {
+        return /^(number|string|boolean|[Oo]bject|any|null|undefined)$/.test(typeDef)     //基础类型
+            || /^'.*'$/.test(typeDef)     //静态字符串
+            || /^".*"$/.test(typeDef);     //静态字符串
     }
 
-    private isPartialType(typedef: string): boolean {
-        return /^Partial\<\w+\>$/.test(typedef);
+    private isPartialType(typeDef: string): boolean {
+        return /^Partial\<\w+\>$/.test(typeDef);
+    }
+
+    private isInterfaceType(typeDef: string): boolean {
+        return /^(interface\s+\w+(\s+extends\s+\w+)?\s*)?\{[\s\S]*\}$/.test(typeDef);
     }
 }

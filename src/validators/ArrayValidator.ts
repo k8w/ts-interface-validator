@@ -1,36 +1,33 @@
 import IValidator from "./IValidator";
 import InterfaceValidator from "./InterfaceValidator";
 import ValidateResult from "../models/ValidateResult";
-import {ValidateErrorCode} from "../models/ValidateResult";
+import { ValidateErrorCode } from "../models/ValidateResult";
 import ValidatorManager from "../ValidatorManager";
 
-export default class ArrayValidator implements IValidator{
-    parent: InterfaceValidator;
+export default class ArrayValidator implements IValidator {
 
-    constructor(typedef:string, parent:InterfaceValidator){
-        this.parent = parent;
-
+    constructor(typeDef: string, manager: ValidatorManager, fileName?: string) {
         //生成子元素Validator
-        let matches = typedef.match(/^([\s\S]*)\[\]$/) || typedef.match(/^Array\<([\s\S]*)\>$/);
+        let matches = typeDef.match(/^([\s\S]*)\[\]$/) || typeDef.match(/^Array\<([\s\S]*)\>$/);
 
-        if(!matches || matches.length!=2){
-            throw new Error('不合法的Array定义：'+typedef);
+        if (!matches || matches.length != 2) {
+            throw new Error('不合法的Array定义：' + typeDef);
         }
 
         let itemDef = matches[1];
-        this.itemValidator = ValidatorManager.instance.getTypeValidator(itemDef, this.parent)
+        this.itemValidator = manager.getValidator(itemDef, fileName)
     }
 
-    validate(value:any):ValidateResult{
+    validate(value: any): ValidateResult {
         //先判断是不是数组
-        if(!Array.isArray(value)){
+        if (!Array.isArray(value)) {
             return new ValidateResult(ValidateErrorCode.NotArray);
         }
 
         //再确认每一项都类型匹配
-        for(let i=0;i<value.length;++i){
+        for (let i = 0; i < value.length; ++i) {
             let result = this.itemValidator.validate(value[i]);
-            if(result.isError){
+            if (result.isError) {
                 return new ValidateResult(ValidateErrorCode.ArrayNotMatch, i.toString(), result);
             }
         }

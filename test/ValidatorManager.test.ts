@@ -1,4 +1,4 @@
-import ValidatorManager from "../src/ValidatorManager";
+import ValidatorManager from '../src/ValidatorManager';
 import InterfaceValidator from "../src/validators/InterfaceValidator";
 import LogicValidator from "../src/validators/LogicValidator";
 import ArrayValidator from "../src/validators/ArrayValidator";
@@ -6,76 +6,72 @@ import BasicValidator from "../src/validators/BasicValidator";
 const assert = require('assert');
 const path = require('path');
 
-describe('ValidatorManager', function(){
-    it('getInterfaceValidator', function(){
-        let validator = ValidatorManager.instance.getInterfaceValidator(path.resolve(__dirname,'res/protocol/PtlDemo.ts'), 'ReqDemo');
+describe('ValidatorManager', function () {
+    let manager = new ValidatorManager();
+
+    it('getInterfaceValidator', function () {
+        let validator = manager.getValidator('ReqDemo', path.resolve(__dirname, 'res/protocol/PtlDemo.ts'));
 
         assert(validator, 'Validator返回为空');
-        assert.equal(validator.fieldValidators.length, 7, 'FieldValidator长度错误');
+        assert.equal((validator as any).fieldValidators.length, 7, 'FieldValidator长度错误');
 
-        let fields = validator.fieldValidators.map(v=>v.fieldName).join(',');
+        let fields = (validator as any).fieldValidators.map((v: any) => v.fieldName).join(',');
         assert.equal(fields, 'paramA,paramB,paramC,paramD,paramD1,paramE,paramF', '字段解析错误');
 
-        let requireds = validator.fieldValidators.map(v=>v.isRequired?'1':'0').join('');
+        let requireds = (validator as any).fieldValidators.map((v: any) => v.isRequired ? '1' : '0').join('');
         assert.equal(requireds, '1110000', 'Required解析错误');
 
-        assert(validator.fieldValidators[0].validator instanceof BasicValidator);
-        assert(validator.fieldValidators[1].validator instanceof BasicValidator);
-        assert(validator.fieldValidators[2].validator instanceof LogicValidator);
-        assert(validator.fieldValidators[3].validator instanceof InterfaceValidator);
-        assert(validator.fieldValidators[4].validator instanceof ArrayValidator)
+        assert((validator as any).fieldValidators[0].validator instanceof BasicValidator);
+        assert((validator as any).fieldValidators[1].validator instanceof BasicValidator);
+        assert((validator as any).fieldValidators[2].validator instanceof LogicValidator);
+        assert((validator as any).fieldValidators[3].validator instanceof InterfaceValidator);
+        assert((validator as any).fieldValidators[4].validator instanceof ArrayValidator)
     });
 
-    describe('getFieldValidator', function(){
-        it('Logic', function(){
-            let parent = new InterfaceValidator('{}');
+    describe('getFieldValidator', function () {
+        it('Logic', function () {
             //Logic
-            let validator = ValidatorManager.instance.getTypeValidator(' string | number',parent);
+            let validator = manager.getValidator(' string | number');
             assert(validator instanceof LogicValidator);
-            validator = ValidatorManager.instance.getTypeValidator("'cms' | 'type'",parent);
+            validator = manager.getValidator("'cms' | 'type'");
             assert(validator instanceof LogicValidator);
-            validator = ValidatorManager.instance.getTypeValidator('"Test" & number',parent);
+            validator = manager.getValidator('"Test" & number');
             assert(validator instanceof LogicValidator);
-            validator = ValidatorManager.instance.getTypeValidator("({a:string,b:number}&{c:number})|'none'",parent);
+            validator = manager.getValidator("({a:string,b:number}&{c:number})|'none'");
             assert(validator instanceof LogicValidator);
         });
 
-        it('Array', function(){
-            let parent = new InterfaceValidator('{}');
+        it('Array', function () {
             //Array
-            let validator = ValidatorManager.instance.getTypeValidator('string[]',parent);
+            let validator = manager.getValidator('string[]');
             assert(validator instanceof ArrayValidator);
-            validator = ValidatorManager.instance.getTypeValidator('Array<number>',parent);
+            validator = manager.getValidator('Array<number>');
             assert(validator instanceof ArrayValidator);
-            validator = ValidatorManager.instance.getTypeValidator("('value1'|'value2')[]",parent);
+            validator = manager.getValidator("('value1'|'value2')[]");
             assert(validator instanceof ArrayValidator);
-            validator = ValidatorManager.instance.getTypeValidator("Array<'value1'|'value2'>",parent);
+            validator = manager.getValidator("Array<'value1'|'value2'>");
             assert(validator instanceof ArrayValidator);
         });
 
-        it('Basic', function(){
-            let parent = new InterfaceValidator('{}');
-
+        it('Basic', function () {
             //Basic
-            let validator = ValidatorManager.instance.getTypeValidator('string',parent);
+            let validator = manager.getValidator('string');
             assert(validator instanceof BasicValidator);
-            validator = ValidatorManager.instance.getTypeValidator('number',parent);
+            validator = manager.getValidator('number');
             assert(validator instanceof BasicValidator);
-            validator = ValidatorManager.instance.getTypeValidator('any',parent);
+            validator = manager.getValidator('any');
             assert(validator instanceof BasicValidator);
-            validator = ValidatorManager.instance.getTypeValidator('boolean',parent);
+            validator = manager.getValidator('boolean');
             assert(validator instanceof BasicValidator);
-            validator = ValidatorManager.instance.getTypeValidator('Object',parent);
+            validator = manager.getValidator('Object');
             assert(validator instanceof BasicValidator);
-            validator = ValidatorManager.instance.getTypeValidator("'Test'",parent);
+            validator = manager.getValidator("'Test'");
             assert(validator instanceof BasicValidator);
         });
 
-        it('Interface', function(){
-            let parent = new InterfaceValidator('{}');
-
+        it('Interface', function () {
             //Interface
-            let validator = ValidatorManager.instance.getTypeValidator("{a:string, b:number[],\n c:'a1'|'b1';d:{d1:string}}",parent);
+            let validator = manager.getValidator("{a:string, b:number[],\n c:'a1'|'b1';d:{d1:string}}");
             assert(validator instanceof InterfaceValidator);
             assert((validator as InterfaceValidator).fieldValidators[0].validator instanceof BasicValidator);
             assert((validator as InterfaceValidator).fieldValidators[1].validator instanceof ArrayValidator);

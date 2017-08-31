@@ -1,9 +1,12 @@
 import {ValidateErrorCode} from "../src/models/ValidateResult";
 import LogicValidator from "../src/validators/LogicValidator";
 import InterfaceValidator from "../src/validators/InterfaceValidator";
+import ValidatorManager from '../src/ValidatorManager';
 const assert = require('assert');
 
-describe('LogicValidator', function(){
+describe('LogicValidator', function () {
+    let manager = new ValidatorManager();
+
     it('splitStrByLogic', function(){
         assert.deepEqual(
             LogicValidator.splitStrByLogic('A|(B&C)&(D|E&F)|G'),
@@ -28,7 +31,7 @@ describe('LogicValidator', function(){
     });
 
     it('validate OR', function(){
-        let validator = new LogicValidator("'Value1'| 'Value2' | 'Value3'", new InterfaceValidator('{}'));
+        let validator = new LogicValidator("'Value1'| 'Value2' | 'Value3'", manager);
         assert.equal(validator.validate('Value1').errcode, 0);
         assert.equal(validator.validate('Value2').errcode, 0);
         assert.equal(validator.validate('Value3').errcode, 0);
@@ -49,7 +52,7 @@ describe('LogicValidator', function(){
     });
 
     it('validate AND', function(){
-        let validator = new LogicValidator("{a:string} & {b:number} & {c:boolean}", new InterfaceValidator('{}'));
+        let validator = new LogicValidator("{a:string} & {b:number} & {c:boolean}", manager);
         assert.equal(validator.validate({a:'1',b:1,c:true}).errcode, 0);
 
         let result = validator.validate({a:1,b:1,c:true});
@@ -64,7 +67,7 @@ describe('LogicValidator', function(){
     });
 
     it('validate AND+OR', function(){
-        let validator = new LogicValidator("'A' | {a:string} & {b:number} | 'C'", new InterfaceValidator('{}'));
+        let validator = new LogicValidator("'A' | {a:string} & {b:number} | 'C'", manager);
         assert.equal(validator.validate('A').errcode, 0);
         assert.equal(validator.validate({a:'1',b:1}).errcode, 0);
         assert.equal(validator.validate('C').errcode, 0);
@@ -83,7 +86,7 @@ describe('LogicValidator', function(){
     });
 
     it('validate Complex', function(){
-        let validator = new LogicValidator("'A' | {a:string} & ({b:number}|{b:boolean}) | 'C'", new InterfaceValidator('{}'));
+        let validator = new LogicValidator("'A' | {a:string} & ({b:number}|{b:boolean}) | 'C'", manager);
         assert.equal(validator.validate('A').errcode, 0);
         assert.equal(validator.validate({a:'1',b:1}).errcode, 0);
         assert.equal(validator.validate({a:'1',b:true}).errcode, 0);

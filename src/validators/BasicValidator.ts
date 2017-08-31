@@ -3,21 +3,21 @@ import ValidateResult from "../models/ValidateResult";
 import {ValidateErrorCode} from "../models/ValidateResult";
 export default class BasicValidator implements IValidator {
 
-    constructor(typedef : string) {
-        if (/^(number|string|boolean|[Oo]bject|undefined)$/.test(typedef)) {
+    constructor(typeDef : string) {
+        if (/^(number|string|boolean|[Oo]bject|undefined)$/.test(typeDef)) {
             this.validate = this
                 .validateType
-                .bind(this, typedef.toLowerCase());
-        } else if (typedef == 'any') {
+                .bind(this, typeDef.toLowerCase());
+        } else if (typeDef == 'any') {
             this.validate = this.validateAny;
-        } else if (typedef == 'null') {
+        } else if (typeDef == 'null') {
             this.validate = this.validateNull;
-        } else if (/^'.*'$/.test(typedef) || /^".*"$/.test(typedef)) {
+        } else if (/^'.*'$/.test(typeDef) || /^".*"$/.test(typeDef)) {
             this.validate = this
                 .validateStrLiteral
-                .bind(this, typedef.substr(1, typedef.length - 2))
+                .bind(this, typeDef.substr(1, typeDef.length - 2))
         } else {
-            throw new Error('错误的类型定义：' + typedef);
+            throw new Error('错误的类型定义：' + typeDef);
         }
     }
 

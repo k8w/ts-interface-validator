@@ -1,52 +1,59 @@
 import IValidator from './IValidator';
-import ValidatorManager from "../ValidatorManager";
+import ValidatorManager from '../ValidatorManager';
 import ValidateError from "../models/ValidateResult";
 import { ValidateErrorCode } from "../models/ValidateResult";
 import ValidatorUtil from "./ValidatorUtil";
 import ValidateResult from "../models/ValidateResult";
 
 export default class InterfaceValidator implements IValidator {
-    readonly filename: string;
-    readonly name: string;
     readonly fieldValidators: FieldValidator[];
-    fieldNames: {
+    readonly fieldNames: {
         [key: string]: null;
     };
-    readonly importDef: string;
-    readonly strictNullChecks: boolean;
-    readonly extendsInterfaceValidator?: InterfaceValidator;
-    indexValidator?: IValidator;
 
-    constructor(typedef: string, options?: {
-        name?: string,
-        filename?: string,
-        importDef?: string,
-        strictNullChecks?: boolean,
-        extendsTypeName?: string
-    }) {
-        this.filename = options && options.filename || '';
-        this.name = options && options.name || '';
-        this.fieldValidators = [];
-        this.importDef = options && options.importDef || '';
-        this.strictNullChecks = options && options.strictNullChecks || false;
+    private readonly name?: string;
+    readonly fileName?: string;
+    readonly manager: ValidatorManager;
+    private readonly extendsName?: string;    
+    private readonly extendsInterfaceValidator?: InterfaceValidator;
+    indexValidator?: IValidator;    
 
-        //继承的基类
-        if (options && options.extendsTypeName) {
-            this.extendsInterfaceValidator = ValidatorManager.instance.getInterfaceValidator(
-                ValidatorManager.instance.getReferencedTypePath(options.extendsTypeName, this),
-                options.extendsTypeName,
-                this.strictNullChecks
-            );
+    constructor(interfaceDef: string, manager: ValidatorManager, fileName?: string) {
+        //Remove comments
+        interfaceDef = ValidatorUtil.removeComment(interfaceDef);
+
+        //解析Name和extends
+        let headerReg = /^interface\s+(\w+)(?:\s+extends\s+(\w+))?\s*\{/;
+        let headerMatch = interfaceDef.match(headerReg);
+        if (headerMatch) {
+            this.name = headerMatch[1];
+            this.extendsName = headerMatch[2];
         }
 
-        //去除无用信息和头尾括号
-        typedef = ValidatorUtil.removeComment(typedef).replace(/^\{/, '').replace(/\}$/, '').trim();
+        this.manager = manager;
+        this.fileName = fileName;
+        this.fieldValidators = [];
 
-        //解析typedef 生成fieldValidators
+        //继承的基类
+        if (this.extendsName) {
+            let extendsInterfaceValidator = this.manager.getValidator(this.extendsName, fileName);
+            if (!(extendsInterfaceValidator instanceof InterfaceValidator)) {
+                throw new Error('Interface can only extends interface')
+            }
+            this.extendsInterfaceValidator = extendsInterfaceValidator;
+        }
+
+        //去除header和头尾括号
+        if (headerMatch) {
+            interfaceDef = interfaceDef.substr(headerMatch.index! + headerMatch[0].length)
+        }
+        interfaceDef = interfaceDef.replace(/^\{/, '').replace(/\}$/, '').trim();
+
+        //解析typeDef 生成fieldValidators
         let bracketsLevel = 0, braceLevel = 0;
         let startPos = 0, lineStart = 0;
-        for (let curPos = 0; curPos < typedef.length; ++curPos) {
-            switch (typedef[curPos]) {
+        for (let curPos = 0; curPos < interfaceDef.length; ++curPos) {
+            switch (interfaceDef[curPos]) {
                 case '{':
                     ++braceLevel;
                     break;
@@ -62,18 +69,18 @@ export default class InterfaceValidator implements IValidator {
                 case ';':
                 case ',':
                     if (bracketsLevel == 0 && braceLevel == 0) {
-                        let fieldDef = typedef.substr(startPos, curPos - startPos);
-                        this.fieldValidators.push(new FieldValidator(this, fieldDef, this.strictNullChecks));
+                        let fieldDef = interfaceDef.substr(startPos, curPos - startPos);
+                        this.addFieldValidator(fieldDef);
                         startPos = curPos + 1;
                     }
                     break;
                 case '\n':
                     //在顶层，一段文字后换行，其实是省略了行尾分号的情况
                     if (bracketsLevel == 0 && braceLevel == 0
-                        && typedef.substr(lineStart, curPos - lineStart + 1).trim().length   //这一行不全是空白
+                        && interfaceDef.substr(lineStart, curPos - lineStart + 1).trim().length   //这一行不全是空白
                     ) {
-                        let fieldDef = typedef.substr(startPos, curPos - startPos).trim();
-                        fieldDef && this.fieldValidators.push(new FieldValidator(this, fieldDef, this.strictNullChecks));
+                        let fieldDef = interfaceDef.substr(startPos, curPos - startPos).trim();
+                        fieldDef && this.addFieldValidator(fieldDef);
                         startPos = curPos + 1;
                     }
 
@@ -81,8 +88,8 @@ export default class InterfaceValidator implements IValidator {
                     break;
             }
         }
-        if (startPos < typedef.length) {
-            this.fieldValidators.push(new FieldValidator(this, typedef.substr(startPos), this.strictNullChecks));
+        if (startPos < interfaceDef.length) {
+            this.addFieldValidator(interfaceDef.substr(startPos));
         }
 
         //去除空的validator（比如index）
@@ -98,6 +105,22 @@ export default class InterfaceValidator implements IValidator {
         if (this.extendsInterfaceValidator) {
             Object.assign(this.fieldNames, this.extendsInterfaceValidator.fieldNames);
             Object.assign(this.extendsInterfaceValidator.fieldNames, this.fieldNames);
+        }
+    }
+
+    private addFieldValidator(allDef: string) {
+        //index signature
+        if (allDef.startsWith('[')) {
+            let matches = allDef.match(/^\[.*\]\s*:([\s\S]+)/);
+            if (matches == null) {
+                throw new Error('不可识别的类型定义: ' + allDef + ' At ' + this.fileName);
+            }
+            let typeDef = matches[1]
+            this.indexValidator = this.manager.getValidator(typeDef, this.fileName);
+        }
+        //normal field
+        else {
+            this.fieldValidators.push(new FieldValidator(this, allDef));
         }
     }
 
@@ -156,41 +179,28 @@ export class FieldValidator implements IValidator {
     fieldName: string;
     isRequired: boolean;
     validator: IValidator;
-    strictNullChecks: boolean;
 
     /**
-     * @param typedef 形如 fieldName? : SomeTypeDef;
+     * @param typeDef 形如 fieldName? : SometypeDef;
      */
-    constructor(parent: InterfaceValidator, alldef: string, strictNullChecks: boolean) {
+    constructor(parent: InterfaceValidator, allDef: string) {
         this.parent = parent;
-        this.strictNullChecks = strictNullChecks;
 
-        alldef = alldef.trim();
+        allDef = allDef.trim();
 
-        //index signature
-        if (alldef.startsWith('[')) {
-            let matches = alldef.match(/^\[.*\]\s*:([\s\S]+)/);
-            if (matches == null) {
-                throw new Error('不可识别的类型定义: ' + alldef + ' At ' + parent.filename);
-            }
-            let typedef = matches[1]
-            parent.indexValidator = ValidatorManager.instance.getTypeValidator(typedef, this.parent);
-            return;
-        }
-
-        let matches = alldef.match(/^([a-zA-Z_\$]\w*)\s*(\??)\s*:\s*([\s\S]+)/);
+        let matches = allDef.match(/^([a-zA-Z_\$]\w*)\s*(\??)\s*:\s*([\s\S]+)/);
         if (matches == null) {
-            throw new Error('不可识别的类型定义: ' + alldef + ' At ' + parent.filename);
+            throw new Error('不可识别的类型定义: ' + allDef + ' At ' + parent.fileName);
         }
         this.fieldName = matches[1];
         this.isRequired = matches[2] == '';
-        let typedef = matches[3];
+        let typeDef = matches[3];
 
-        this.validator = ValidatorManager.instance.getTypeValidator(typedef, this.parent);
+        this.validator = parent.manager.getValidator(typeDef, parent.fileName);
     }
 
     validate(value: any): ValidateError {
-        if (!this.isRequired && (value === undefined || (value === null && !this.strictNullChecks))) {
+        if (!this.isRequired && (value === undefined || (value === null && !this.parent.manager.strictNullChecks))) {
             return ValidateError.success;
         }
 

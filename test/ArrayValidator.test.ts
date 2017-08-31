@@ -1,11 +1,14 @@
 import {ValidateErrorCode} from "../src/models/ValidateResult";
 import ArrayValidator from "../src/validators/ArrayValidator";
 import InterfaceValidator from "../src/validators/InterfaceValidator";
+import ValidatorManager from '../src/ValidatorManager';
 const assert = require('assert');
 
-describe('ArrayValidator', function(){
+describe('ArrayValidator', function () {
+    let manager = new ValidatorManager();
+
     it('validate number[]', function(){
-        let validator = new ArrayValidator('number[]', new InterfaceValidator('{}'));
+        let validator = new ArrayValidator('number[]', manager);
         assert.equal(validator.validate([1,1,1,1]).errcode, 0);
         assert.equal(validator.validate([]).errcode, 0);
         assert.equal(validator.validate([1]).errcode, 0);
