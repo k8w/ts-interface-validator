@@ -72,20 +72,9 @@ export default class ValidateResult{
     constructor(errcode:ValidateErrorCode);
     constructor(errcode:ValidateErrorCode, fieldName: string, innerError:ValidateResult);
     constructor(errcode:ValidateErrorCode=0, fieldName?: string, innerError?: ValidateResult){
-        if(fieldName&&!innerError || !fieldName&&innerError){
-            throw new Error('fieldName和innerError必须同时出现');
-        }
-
         this.errcode = errcode;
         this.fieldName = fieldName;
         this.innerError = innerError;
-
-        if((this.fieldName && this.innerError==null)
-            || (this.fieldName==null && this.innerError)){
-            console.error('fieldName', fieldName);
-            console.error('innerError', innerError);
-            throw new Error('fieldName 与 innerError必须同时存在，此处'+(fieldName?'fieldName':'innerError')+'为空');
-        }
     }
 
     static readonly success = new ValidateResult(ValidateErrorCode.Succ);
