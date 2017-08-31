@@ -200,14 +200,25 @@ export class FieldValidator implements IValidator {
         this.parent = parent;
         this.fieldName = fieldName;
         this.validator = parent.manager.getValidator(typeDef, parent.fileName);
-        if (
-            typeDef == 'undefined'  //自己是undefined
-            || (
-                this.validator instanceof LogicValidator && this.validator.condition == 'OR'
-                && this.validator.childValidators.some(v => v instanceof BasicValidator && v.typeDef == 'undefined')
-            )   //或undefined
+        if (typeDef == 'undefined') {
+            this.isRequired = false;
+        }
+        // XXX | XXX | undefined
+        else if (
+            this.validator instanceof LogicValidator && this.validator.condition == 'OR'
+            && this.validator.childValidators.some(v => v instanceof BasicValidator && v.typeDef == 'undefined')
         ) {
             this.isRequired = false;
+            //移除LOGIC里的undefined（有isRequired就够了）
+            for (let i = this.validator.childValidators.length - 1; i > -1; --i){
+                let v = this.validator.childValidators[i];
+                if (v instanceof BasicValidator && v.typeDef == 'undefined') {
+                    this.validator.childValidators.splice(i, 1);
+                }
+            }
+            if (this.validator.childValidators.length == 1) {
+                this.validator = this.validator.childValidators[0];
+            }
         }
         else {
             this.isRequired = isRequired;

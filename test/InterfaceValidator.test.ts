@@ -74,7 +74,7 @@ describe('InterfaceValidator', function () {
             paramD: { a: 'test' }
         });
         assert(result.isError);
-        assert.equal(result.originalError.errcode, ValidateErrorCode.NullOnRequired);
+        assert.equal(result.originalError.errcode, ValidateErrorCode.NullOnRequired, `${result.originalError.fieldName}: ${result.originalError.message}`);
         assert.equal(result.originalError.fieldName, 'paramD.b');
 
         result = validator.validate({
