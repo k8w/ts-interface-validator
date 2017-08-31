@@ -23,5 +23,18 @@
     "@types/mocha": "^2.2.41",
     "@types/node": "^8.0.23"
   },
-  "typings": "index.d.ts"
+  "typings": "index.d.ts",
+  "nyc": {
+    "extension": [
+      ".ts",
+      ".tsx"
+    ],
+    "include": [
+      "src/**/*.ts"
+    ],
+    "reporter": [
+      "html"
+    ],
+    "all": true
+  }
 }
