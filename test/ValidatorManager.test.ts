@@ -113,4 +113,41 @@ describe('ValidatorManager', function () {
             assert((validator as InterfaceValidator).fieldValidators[0].validator instanceof BasicValidator);
         })
     })
+
+    it('Partial Type', function () {
+        let validator = manager.getValidator('Partial<PartTest>', path.resolve(__dirname, 'res/protocol/PartTest.ts'));
+
+        let result = validator.validate({});
+        assert.equal(result.errcode, 0);
+
+        result = validator.validate({
+            a: 'sss'
+        });
+        assert.equal(result.errcode, 0);
+
+        result = validator.validate({
+            b: 666
+        });
+        assert.equal(result.errcode, 0);
+
+        result = validator.validate({
+            a: 666
+        });
+        assert.equal(result.errcode, ValidateErrorCode.InterfaceNotMatch);
+        assert.equal(result.fieldName, 'a');
+        assert.equal(result.innerError!.errcode, ValidateErrorCode.NotString);
+
+        result = validator.validate({
+            b: '666'
+        });
+        assert.equal(result.errcode, ValidateErrorCode.InterfaceNotMatch);
+        assert.equal(result.fieldName, 'b');
+        assert.equal(result.innerError!.errcode, ValidateErrorCode.NotNumber);
+    })
+
+    it('Referenced cache', function () {
+        let validator1 = manager.getValidator('PartTest', path.resolve(__dirname, 'res/protocol/PartTest.ts'));
+        let validator2 = manager.getValidator('PartTest', path.resolve(__dirname, 'res/protocol/PartTest.ts'));
+        assert.deepEqual(validator1, validator2);
+    })
 });

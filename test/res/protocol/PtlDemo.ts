@@ -16,10 +16,10 @@ export interface ReqDemo extends Request {
     paramA:string;
     paramB: number;
     paramC :'value1' | 'valueB';
-    paramD: { a: string, b: string } | undefined;
+    paramD: ((({ a: string, b: string }))) | undefined;
     paramD1 ? : undefined | boolean[]
     paramE ? : {[key: string]: number}
-    paramF ? : {[key: number]: string[]}
+    paramF ? : ((({[key: number]: ((string)[])})))
 }
 
 

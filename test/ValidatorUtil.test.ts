@@ -27,5 +27,6 @@ describe('ValidatorUtil', function(){
         assert.equal(ValidatorUtil.trimBrackets("('value1')|'(value2)'"), "('value1')|'(value2)'");
         assert.equal(ValidatorUtil.trimBrackets("((('value1'|'value2')))"), "'value1'|'value2'");
         assert.equal(ValidatorUtil.trimBrackets("(((('value1')|('value2'))))"), "('value1')|('value2')")
+        assert.equal(ValidatorUtil.trimBrackets("((string)[])"), "(string)[]");
     })
 });

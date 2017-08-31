@@ -24,10 +24,7 @@ export default class ValidatorManager {
      * @param fileName Which file the type is defined in, needed referenced any other type
      */
     getValidator(type: string, fileName?: string): IValidator {
-        //Remove bracket at the beginning and end
-        while (type.startsWith('(') && type.endsWith(')')) {
-            type = type.substr(1, type.length - 2)
-        }
+        type = ValidatorUtil.trimBrackets(type.trim());
 
         //Cached referenced validator
         if (fileName && this._referencedValidatorCache[type + fileName]) {
@@ -374,6 +371,7 @@ export default class ValidatorManager {
     }
 
     private isArrayType(typeDef: string): boolean {
+        console.log(JSON.stringify(typeDef))
         return /^([\s\S]*)\[\]$/.test(typeDef) || /^Array\<([\s\S]*)\>$/.test(typeDef);
     }
 
