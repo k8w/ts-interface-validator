@@ -15,12 +15,11 @@ If you should have any question, please feel free to let me know.
 
 ```typescript
 import ValidatorManager from 'ts-interface-validator';
-let manager = new ValidatorManager();
 
 //Validate from type definition
-let validator = manager.getValidator('{ a: string; b: number[]; c?: \'C1\' | \'C2\'}');
+let validator = ValidatorManager.instance.getValidator('{ a: string; b: number[]; c?: \'C1\' | \'C2\'}');
 //Validate from definition in file
-let validator2 = manager.getValidator('TypeName', 'xxx.ts');
+let validator2 = ValidatorManager.instance.getValidator('TypeName', 'xxx.ts');
 
 //Validate
 let result = validator.validate({ a: 'a', b: [2, 'b'] });

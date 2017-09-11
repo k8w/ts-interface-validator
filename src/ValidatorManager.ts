@@ -13,6 +13,14 @@ export default class ValidatorManager {
     readonly strictNullChecks: boolean;  //default is true
     private _referencedValidatorCache: { [key: string]: IValidator } = {};
 
+    private static _instance: ValidatorManager;
+    static get instance(): ValidatorManager {
+        if (!this._instance) {
+            this._instance = new ValidatorManager();
+        }
+        return this._instance;
+    }
+
     constructor(strictNullChecks: boolean = true) {
         this.strictNullChecks = strictNullChecks;
     }
