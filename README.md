@@ -34,7 +34,7 @@ else {
 
 
 
-### Supported
+### Supported pattern
 
 1. Basic type as  `string`, `number`, `boolean`, `Object`, `any`
 1. Array type as `T[]` or `Array<T>`
@@ -48,7 +48,7 @@ else {
 1. Partial type, as `Partial<T>`
 1. Ignore comments automatically
 
-### Not Supported (temporarily)
+### Not Supported pattern
 
 1. import must be finished in single line, and must be ended with semicolon
 1. Mapped Types
