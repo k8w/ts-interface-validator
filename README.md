@@ -14,26 +14,21 @@ If you should have any question, please feel free to let me know.
 ## Usage
 
 ```typescript
-//Get interface validator from file
-import TsInterfaceValidator from 'ts-interface-validator';
-let validator = TsInterfaceValidator.getInterfaceValidator('xxx/xxx.ts', 'InterfaceName');
+import ValidatorManager from 'ts-interface-validator';
+let manager = new ValidatorManager();
+
+//Validate from type definition
+let validator = manager.getValidator('{ a: string; b: number[]; c?: \'C1\' | \'C2\'}');
+//Validate from definition in file
+let validator2 = manager.getValidator('TypeName', 'xxx.ts');
 
 //Validate
-let toValidateValue = xxx;
-let result = validator.validate(toValidateValue);
-
-//Process with validate result
-if(result.isSuccess){
+let result = validator.validate({ a: 'a', b: [2, 'b'] });
+if (result.isSuccess) {
     //succ
 }
-else{
-    //error
-    console.log(result.message);    //Error message in top level
-    console.log(result.originalError.message);  //Error message in minimal level
-}
-
-if(result.isError){
-    //error
+else {
+    console.log(result.message, result.originalError.message)
 }
 ```
 

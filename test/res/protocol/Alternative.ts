@@ -1,14 +1,14 @@
-interface WithSymbolId {
+export interface WithSymbolId {
     symbolId: string;
     symbolCode     :    undefined    ;
 }
 
-interface WithSymbolCode {
+export interface WithSymbolCode {
     symbolId  : undefined               ;
     symbolCode            : string         ;
 }
 
-interface ReqBody {
+export interface ReqBody {
     value: 'yes' | 'no'
 }
 
