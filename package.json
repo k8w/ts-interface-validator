@@ -1,6 +1,6 @@
 {
   "name": "ts-interface-validator",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "TypeScript interface validator",
   "main": "index.js",
   "scripts": {
