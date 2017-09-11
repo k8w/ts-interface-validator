@@ -50,6 +50,5 @@ else {
 
 ### Not Supported pattern
 
-1. import must be finished in single line, and must be ended with semicolon
 1. Mapped Types
 1. Circular reference
