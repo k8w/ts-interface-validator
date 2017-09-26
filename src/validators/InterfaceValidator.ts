@@ -126,7 +126,6 @@ export default class InterfaceValidator implements IValidator {
         else {
             let matches = allDef.match(/^([a-zA-Z_\$]\w*)\s*(\??)\s*:\s*([\s\S]+)/);
             if (matches == null) {
-                console.log(JSON.stringify(allDef))
                 throw new Error('不可识别的类型定义: ' + allDef + ' At ' + this.fileName);
             }
             let fieldName = matches[1];

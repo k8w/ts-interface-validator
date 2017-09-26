@@ -379,7 +379,6 @@ export default class ValidatorManager {
     }
 
     private isArrayType(typeDef: string): boolean {
-        console.log(JSON.stringify(typeDef))
         return /^([\s\S]*)\[\]$/.test(typeDef) || /^Array\<([\s\S]*)\>$/.test(typeDef);
     }
 
