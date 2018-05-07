@@ -298,4 +298,26 @@ describe('InterfaceValidator', function () {
         assert.equal(result.originalError.errcode, ValidateErrorCode.NullOnRequired);
         assert.equal(result.originalError.fieldName, 'childValue');
     })
+
+    it('(Sth | null)[]', function () {
+        let validator = manager.getValidator('{a: ({value: string} | null)[]}');
+        assert.equal(validator.validate({
+            a: [{ value: 'a' }, { value: 'b' }]
+        }).errcode, 0);
+        assert.equal(validator.validate({
+            a: [{ value: 'a' }, null]
+        }).errcode, 0);
+        assert.equal(validator.validate({
+            a: [null, { value: 'b' }]
+        }).errcode, 0);
+        assert.equal(validator.validate({
+            a: [null, null]
+        }).errcode, 0);
+        assert.equal(validator.validate({
+            a: [{}, {}]
+        }).errcode, ValidateErrorCode.InterfaceNotMatch);
+        assert.equal(validator.validate({
+            a: null
+        }).errcode, ValidateErrorCode.InterfaceNotMatch);
+    })
 });

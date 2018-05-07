@@ -7,8 +7,8 @@ export default class Protocol<Req extends Request, Res extends Response> {
         this.conf = conf;
     }
 
-    req: Req;
-    res: Res;
+    req!: Req;
+    res!: Res;
 
     get url(): string {
         return this.conf.url;

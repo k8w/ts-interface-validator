@@ -138,7 +138,7 @@ export default class InterfaceValidator implements IValidator {
 
     validate(value: any): ValidateError {
         //不是Object
-        if (typeof value !== 'object' || Array.isArray(value)) {
+        if (value == null || typeof value !== 'object' || Array.isArray(value)) {
             return new ValidateResult(ValidateErrorCode.NotObject);
         }
 
@@ -209,7 +209,7 @@ export class FieldValidator implements IValidator {
         ) {
             this.isRequired = false;
             //移除LOGIC里的undefined（有isRequired就够了）
-            for (let i = this.validator.childValidators.length - 1; i > -1; --i){
+            for (let i = this.validator.childValidators.length - 1; i > -1; --i) {
                 let v = this.validator.childValidators[i];
                 if (v instanceof BasicValidator && v.typeDef == 'undefined') {
                     this.validator.childValidators.splice(i, 1);
