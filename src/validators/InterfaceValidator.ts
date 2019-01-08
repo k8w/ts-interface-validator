@@ -105,8 +105,18 @@ export default class InterfaceValidator implements IValidator {
 
         //有继承 则扩展allowedFields
         if (this.extendsInterfaceValidator) {
-            Object.assign(this.fieldNames, this.extendsInterfaceValidator.fieldNames);
-            Object.assign(this.extendsInterfaceValidator.fieldNames, this.fieldNames);
+            this._extendFieldNames();
+        }
+    }
+
+    private _extendFieldNames() {
+        let parent = this.extendsInterfaceValidator
+        if (parent) {
+            Object.assign(this.fieldNames, parent.fieldNames);
+            Object.assign(parent.fieldNames, this.fieldNames);
+            if (parent.extendsInterfaceValidator) {
+                parent._extendFieldNames();
+            }
         }
     }
 

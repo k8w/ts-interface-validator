@@ -299,6 +299,30 @@ describe('InterfaceValidator', function () {
         assert.equal(result.originalError.fieldName, 'childValue');
     })
 
+    it('grand extends', function () {
+        let validator = manager.getValidator('GrandChild', path.resolve(__dirname, 'res/protocol/GrandChild.ts'));
+        let result = validator.validate({
+            parentValue: 123,
+            childValue: 123,
+            grandChildValue: 123
+        });
+        assert.equal(result.errcode, 0, result.originalError.fieldName + ': ' + result.originalError.message);
+
+        result = validator.validate({
+            childValue: 123
+        });
+        assert(result.isError);
+        assert.equal(result.originalError.errcode, ValidateErrorCode.NullOnRequired);
+        assert.equal(result.originalError.fieldName, 'parentValue');
+
+        result = validator.validate({
+            parentValue: 123
+        });
+        assert(result.isError);
+        assert.equal(result.originalError.errcode, ValidateErrorCode.NullOnRequired);
+        assert.equal(result.originalError.fieldName, 'childValue');
+    })
+
     it('(Sth | null)[]', function () {
         let validator = manager.getValidator('{a: ({value: string} | null)[]}');
         assert.equal(validator.validate({
